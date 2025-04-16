@@ -1,0 +1,30 @@
+server:
+  port: 8080
+  read_timeout: 50ms
+  write_timeout: 50ms
+  idle_timeout: 120s
+  max_connections: 1000
+
+database:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  dbname: pvz_test
+  sslmode: disable
+  max_open_conns: 1000
+  max_idle_conns: 100
+  conn_max_lifetime: 5m
+  conn_max_idle_time: 1m
+
+jwt:
+  secret: "your-secret-key"
+  expiration: 24h
+
+prometheus:
+  port: 9000
+  path: /metrics
+
+cache:
+  ttl: 5m
+  max_size: 10000 
