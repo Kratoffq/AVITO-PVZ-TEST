@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,7 +21,7 @@ func MetricsMiddleware() gin.HandlerFunc {
 		HttpRequestsTotal.WithLabelValues(
 			c.Request.Method,
 			c.FullPath(),
-			string(rune(status)),
+			strconv.Itoa(status),
 		).Inc()
 
 		HttpRequestDuration.WithLabelValues(
