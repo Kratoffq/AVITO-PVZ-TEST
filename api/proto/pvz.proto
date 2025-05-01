@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package pvz;
+
+option go_package = "avito-pvz-test/api/proto";
+
+import "google/protobuf/timestamp.proto";
+
+// PVZService предоставляет методы для работы с ПВЗ
+service PVZService {
+  // GetAllPVZ возвращает список всех ПВЗ
+  rpc GetAllPVZ(GetAllPVZRequest) returns (GetAllPVZResponse) {}
+}
+
+// GetAllPVZRequest - пустой запрос для получения всех ПВЗ
+message GetAllPVZRequest {}
+
+// GetAllPVZResponse содержит список ПВЗ
+message GetAllPVZResponse {
+  repeated PVZ pvzs = 1;
+}
+
+// PVZ представляет пункт выдачи заказов
+message PVZ {
+  string id = 1;
+  string city = 2;
+  google.protobuf.Timestamp registration_date = 3;
+} 

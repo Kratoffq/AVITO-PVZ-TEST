@@ -6,27 +6,31 @@ import (
 	"github.com/google/uuid"
 )
 
-type UserRole string
-
-const (
-	RoleEmployee  UserRole = "employee"
-	RoleModerator UserRole = "moderator"
-)
-
+// User представляет пользователя системы
 type User struct {
-	ID        uuid.UUID `json:"id" db:"id"`
-	Email     string    `json:"email" db:"email"`
-	Password  string    `json:"-" db:"password"`
-	Role      UserRole  `json:"role" db:"role"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID        uuid.UUID
+	Email     string
+	Password  string
+	Role      UserRole
+	CreatedAt time.Time
 }
 
+// PVZ представляет пункт выдачи заказов
 type PVZ struct {
-	ID               uuid.UUID `json:"id" db:"id"`
-	RegistrationDate time.Time `json:"registration_date" db:"registration_date"`
-	City             string    `json:"city" db:"city"`
+	ID               uuid.UUID
+	RegistrationDate time.Time
+	City             string
 }
 
+// Reception представляет приемку товаров
+type Reception struct {
+	ID       uuid.UUID
+	DateTime time.Time
+	PVZID    uuid.UUID
+	Status   ReceptionStatus
+}
+
+// ReceptionStatus представляет статус приемки
 type ReceptionStatus string
 
 const (
@@ -34,24 +38,28 @@ const (
 	StatusClose      ReceptionStatus = "close"
 )
 
-type Reception struct {
-	ID       uuid.UUID       `json:"id" db:"id"`
-	DateTime time.Time       `json:"date_time" db:"date_time"`
-	PVZID    uuid.UUID       `json:"pvz_id" db:"pvz_id"`
-	Status   ReceptionStatus `json:"status" db:"status"`
+// Product представляет товар
+type Product struct {
+	ID          uuid.UUID
+	DateTime    time.Time
+	Type        ProductType
+	ReceptionID uuid.UUID
 }
 
+// ProductType представляет тип товара
 type ProductType string
 
 const (
-	TypeElectronics ProductType = "электроника"
-	TypeClothing    ProductType = "одежда"
-	TypeShoes       ProductType = "обувь"
+	TypeElectronics ProductType = "electronics"
+	TypeClothing    ProductType = "clothing"
+	TypeFood        ProductType = "food"
+	TypeOther       ProductType = "other"
 )
 
-type Product struct {
-	ID          uuid.UUID   `json:"id" db:"id"`
-	DateTime    time.Time   `json:"date_time" db:"date_time"`
-	Type        ProductType `json:"type" db:"type"`
-	ReceptionID uuid.UUID   `json:"reception_id" db:"reception_id"`
-}
+// UserRole определяет роль пользователя
+type UserRole string
+
+const (
+	RoleEmployee  UserRole = "employee"
+	RoleModerator UserRole = "moderator"
+)

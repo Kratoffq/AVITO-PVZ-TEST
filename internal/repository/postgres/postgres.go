@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/avito/pvz/internal/models"
@@ -10,6 +11,35 @@ import (
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
+
+// DB представляет соединение с базой данных
+type DB struct {
+	*sql.DB
+}
+
+// New создает новое соединение с базой данных
+func New(cfg struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}) (*DB, error) {
+	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open database: %w", err)
+	}
+
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	return &DB{db}, nil
+}
 
 type PostgresRepository struct {
 	db    *sql.DB
@@ -60,7 +90,13 @@ func (r *PostgresRepository) GetUserByID(ctx context.Context, id uuid.UUID) (*mo
 func (r *PostgresRepository) CreatePVZ(ctx context.Context, pvz *models.PVZ) error {
 	query := `INSERT INTO pvzs (id, registration_date, city) VALUES ($1, $2, $3)`
 	_, err := r.db.ExecContext(ctx, query, pvz.ID, pvz.RegistrationDate, pvz.City)
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to create PVZ: %w", err)
+	}
+
+	// Инвалидируем кэш
+	r.cache.DeletePVZ(pvz.ID)
+	return nil
 }
 
 func (r *PostgresRepository) GetPVZByID(ctx context.Context, id uuid.UUID) (*models.PVZ, error) {
@@ -77,7 +113,7 @@ func (r *PostgresRepository) GetPVZByID(ctx context.Context, id uuid.UUID) (*mod
 		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get PVZ: %w", err)
 	}
 
 	// Сохраняем в кэш
@@ -292,4 +328,44 @@ func (r *PostgresRepository) CreateProducts(ctx context.Context, products []*mod
 	}
 
 	return tx.Commit()
+}
+
+func (r *PostgresRepository) UpdatePVZ(ctx context.Context, pvz *models.PVZ) error {
+	query := `UPDATE pvzs SET city = $1 WHERE id = $2`
+	result, err := r.db.ExecContext(ctx, query, pvz.City, pvz.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update PVZ: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("PVZ not found")
+	}
+
+	// Инвалидируем кэш
+	r.cache.DeletePVZ(pvz.ID)
+	return nil
+}
+
+func (r *PostgresRepository) DeletePVZ(ctx context.Context, id uuid.UUID) error {
+	query := `DELETE FROM pvzs WHERE id = $1`
+	result, err := r.db.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete PVZ: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("PVZ not found")
+	}
+
+	// Инвалидируем кэш
+	r.cache.DeletePVZ(id)
+	return nil
 }

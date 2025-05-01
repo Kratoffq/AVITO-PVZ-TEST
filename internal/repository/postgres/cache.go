@@ -35,6 +35,12 @@ func (c *Cache) SetPVZ(pvz *models.PVZ) {
 	c.pvzCache[pvz.ID] = pvz
 }
 
+func (c *Cache) DeletePVZ(id uuid.UUID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.pvzCache, id)
+}
+
 func (c *Cache) GetReception(id uuid.UUID) (*models.Reception, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

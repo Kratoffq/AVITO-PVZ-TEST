@@ -6,43 +6,61 @@ import (
 )
 
 var (
-	// Технические метрики
-	HttpRequestsTotal = promauto.NewCounterVec(
+	// HTTP метрики
+	HTTPRequestsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "http_requests_total",
-			Help: "Total number of HTTP requests",
+			Help: "Общее количество HTTP запросов",
 		},
-		[]string{"method", "endpoint", "status"},
+		[]string{"method", "path", "status"},
 	)
 
-	HttpRequestDuration = promauto.NewHistogramVec(
+	HTTPRequestDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "http_request_duration_seconds",
-			Help:    "Duration of HTTP requests in seconds",
-			Buckets: []float64{0.01, 0.05, 0.1, 0.5, 1, 2, 5},
+			Help:    "Длительность HTTP запросов в секундах",
+			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"method", "endpoint"},
+		[]string{"method", "path"},
 	)
 
 	// Бизнес метрики
-	PvzCreatedTotal = promauto.NewCounter(
+	PVZCreatedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
 			Name: "pvz_created_total",
-			Help: "Total number of created PVZs",
+			Help: "Общее количество созданных ПВЗ",
 		},
 	)
 
-	ReceptionsCreatedTotal = promauto.NewCounter(
+	ReceptionCreatedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "receptions_created_total",
-			Help: "Total number of created receptions",
+			Name: "reception_created_total",
+			Help: "Общее количество созданных приёмок",
 		},
 	)
 
-	ProductsAddedTotal = promauto.NewCounter(
+	ProductCreatedTotal = promauto.NewCounter(
 		prometheus.CounterOpts{
-			Name: "products_added_total",
-			Help: "Total number of added products",
+			Name: "product_created_total",
+			Help: "Общее количество созданных товаров",
 		},
+	)
+
+	// Метрики транзакций
+	TransactionDuration = promauto.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "transaction_duration_seconds",
+			Help:    "Длительность транзакций в секундах",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"type"},
+	)
+
+	TransactionErrors = promauto.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "transaction_errors_total",
+			Help: "Общее количество ошибок в транзакциях",
+		},
+		[]string{"type"},
 	)
 )

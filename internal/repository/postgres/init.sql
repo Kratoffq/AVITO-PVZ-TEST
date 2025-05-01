@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- Создание таблицы ПВЗ
 CREATE TABLE IF NOT EXISTS pvzs (
     id UUID PRIMARY KEY,
-    registration_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
     city VARCHAR(100) NOT NULL,
     CONSTRAINT city_check CHECK (city IN ('Москва', 'Санкт-Петербург', 'Казань'))
 );

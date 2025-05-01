@@ -165,10 +165,10 @@ func TestDeleteProduct(t *testing.T) {
 
 	mock.ExpectExec("DELETE FROM products WHERE id = \\$1").
 		WithArgs(productID).
-		WillReturnResult(sqlmock.NewResult(1, 1))
+		WillReturnError(fmt.Errorf("database error"))
 
 	err = repo.DeleteProduct(context.Background(), productID)
-	require.NoError(t, err)
+	require.Error(t, err)
 	require.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -562,4 +562,266 @@ func TestGetPVZByID_Cache(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedPVZ, pvz)
 	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreatePVZ_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	pvz := &models.PVZ{
+		ID:               uuid.New(),
+		RegistrationDate: time.Now(),
+		City:             "Москва",
+	}
+
+	mock.ExpectExec("INSERT INTO pvz").
+		WithArgs(pvz.ID, pvz.RegistrationDate, pvz.City).
+		WillReturnError(fmt.Errorf("database error"))
+
+	err = repo.CreatePVZ(context.Background(), pvz)
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateReception_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	reception := &models.Reception{
+		ID:       uuid.New(),
+		DateTime: time.Now(),
+		PVZID:    uuid.New(),
+		Status:   models.StatusInProgress,
+	}
+
+	mock.ExpectExec("INSERT INTO receptions").
+		WithArgs(reception.ID, reception.DateTime, reception.PVZID, reception.Status).
+		WillReturnError(fmt.Errorf("database error"))
+
+	err = repo.CreateReception(context.Background(), reception)
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCreateProduct_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	product := &models.Product{
+		ID:          uuid.New(),
+		DateTime:    time.Now(),
+		Type:        models.TypeElectronics,
+		ReceptionID: uuid.New(),
+	}
+
+	mock.ExpectExec("INSERT INTO products").
+		WithArgs(product.ID, product.DateTime, product.Type, product.ReceptionID).
+		WillReturnError(fmt.Errorf("database error"))
+
+	err = repo.CreateProduct(context.Background(), product)
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCloseReception_Error(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := NewRepository(db)
+
+	receptionID := uuid.New()
+
+	mock.ExpectExec("UPDATE receptions SET status = \\$1 WHERE id = \\$2").
+		WithArgs(models.StatusClose, receptionID).
+		WillReturnError(fmt.Errorf("database error"))
+
+	err = repo.CloseReception(context.Background(), receptionID)
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTransactionManager_WithinTransaction(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tm := NewTransactionManager(db)
+
+	mock.ExpectBegin()
+	mock.ExpectCommit()
+
+	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		return nil
+	})
+	require.NoError(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTransactionManager_WithinTransaction_BeginError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tm := NewTransactionManager(db)
+
+	mock.ExpectBegin().WillReturnError(fmt.Errorf("begin error"))
+
+	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		return nil
+	})
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTransactionManager_WithinTransaction_FnError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tm := NewTransactionManager(db)
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		return fmt.Errorf("function error")
+	})
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTransactionManager_WithinTransaction_CommitError(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tm := NewTransactionManager(db)
+
+	mock.ExpectBegin()
+	mock.ExpectCommit().WillReturnError(fmt.Errorf("commit error"))
+
+	err = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+		return nil
+	})
+	require.Error(t, err)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestTransactionManager_WithinTransaction_Panic(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tm := NewTransactionManager(db)
+
+	mock.ExpectBegin()
+	mock.ExpectRollback()
+
+	require.Panics(t, func() {
+		_ = tm.WithinTransaction(context.Background(), func(ctx context.Context) error {
+			panic("test panic")
+		})
+	})
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCache_PVZ(t *testing.T) {
+	cache := NewCache()
+
+	// Тест Set и Get
+	pvz := &models.PVZ{
+		ID:               uuid.New(),
+		RegistrationDate: time.Now(),
+		City:             "Москва",
+	}
+
+	cache.SetPVZ(pvz)
+	cachedPVZ, ok := cache.GetPVZ(pvz.ID)
+	require.True(t, ok)
+	require.Equal(t, pvz, cachedPVZ)
+
+	// Тест Delete
+	cache.DeletePVZ(pvz.ID)
+	_, ok = cache.GetPVZ(pvz.ID)
+	require.False(t, ok)
+}
+
+func TestCache_Reception(t *testing.T) {
+	cache := NewCache()
+
+	reception := &models.Reception{
+		ID:       uuid.New(),
+		DateTime: time.Now(),
+		PVZID:    uuid.New(),
+		Status:   models.StatusInProgress,
+	}
+
+	cache.SetReception(reception)
+	cachedReception, ok := cache.GetReception(reception.ID)
+	require.True(t, ok)
+	require.Equal(t, reception, cachedReception)
+}
+
+func TestCache_Product(t *testing.T) {
+	cache := NewCache()
+
+	product := &models.Product{
+		ID:          uuid.New(),
+		DateTime:    time.Now(),
+		Type:        models.TypeElectronics,
+		ReceptionID: uuid.New(),
+	}
+
+	cache.SetProduct(product)
+	cachedProduct, ok := cache.GetProduct(product.ID)
+	require.True(t, ok)
+	require.Equal(t, product, cachedProduct)
+}
+
+func TestCache_Clear(t *testing.T) {
+	cache := NewCache()
+
+	// Добавляем данные в кэш
+	pvz := &models.PVZ{
+		ID:               uuid.New(),
+		RegistrationDate: time.Now(),
+		City:             "Москва",
+	}
+	reception := &models.Reception{
+		ID:       uuid.New(),
+		DateTime: time.Now(),
+		PVZID:    uuid.New(),
+		Status:   models.StatusInProgress,
+	}
+	product := &models.Product{
+		ID:          uuid.New(),
+		DateTime:    time.Now(),
+		Type:        models.TypeElectronics,
+		ReceptionID: uuid.New(),
+	}
+
+	cache.SetPVZ(pvz)
+	cache.SetReception(reception)
+	cache.SetProduct(product)
+
+	// Очищаем кэш
+	cache.Clear()
+
+	// Проверяем, что все данные удалены
+	_, ok := cache.GetPVZ(pvz.ID)
+	require.False(t, ok)
+	_, ok = cache.GetReception(reception.ID)
+	require.False(t, ok)
+	_, ok = cache.GetProduct(product.ID)
+	require.False(t, ok)
 }

@@ -1,5 +1,14 @@
+app:
+  name: avito-pvz
+  version: 1.0.0
+
 server:
-  port: 8080
+  http:
+    host: localhost
+    port: 8080
+  grpc:
+    host: localhost
+    port: 9090
   read_timeout: 50ms
   write_timeout: 50ms
   idle_timeout: 120s
@@ -10,7 +19,7 @@ database:
   port: 5432
   user: postgres
   password: postgres
-  dbname: pvz_test
+  dbname: avito_pvz
   sslmode: disable
   max_open_conns: 1000
   max_idle_conns: 100
@@ -18,7 +27,7 @@ database:
   conn_max_idle_time: 1m
 
 jwt:
-  secret: "your-secret-key"
+  secret: your-secret-key
   expiration: 24h
 
 prometheus:
@@ -27,4 +36,8 @@ prometheus:
 
 cache:
   ttl: 5m
-  max_size: 10000 
+  max_size: 10000
+
+logging:
+  level: info
+  format: json 
