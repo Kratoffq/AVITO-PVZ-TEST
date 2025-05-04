@@ -13,15 +13,15 @@ import (
 
 func TestCreatePVZQuery(t *testing.T) {
 	id := uuid.New()
-	registrationDate := time.Now()
-	city := "Москва"
+	dateTime := time.Now()
+	city := "Moscow"
 
-	query, args, err := CreatePVZ(id, registrationDate, city)
+	query, args, err := CreatePVZ(id, dateTime, city)
 	require.NoError(t, err)
-	assert.Equal(t, "INSERT INTO pvzs (id,registration_date,city) VALUES ($1,$2,$3)", query)
+	assert.Equal(t, "INSERT INTO pvzs (id,created_at,city) VALUES ($1,$2,$3)", query)
 	assert.Len(t, args, 3)
-	assert.Equal(t, id, args[0])
-	assert.Equal(t, registrationDate, args[1])
+	assert.Equal(t, id.String(), args[0])
+	assert.Equal(t, dateTime, args[1])
 	assert.Equal(t, city, args[2])
 }
 
@@ -29,17 +29,21 @@ func TestGetPVZByIDQuery(t *testing.T) {
 	id := uuid.New()
 	query, args, err := GetPVZByID(id)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs WHERE id = $1", query)
-	assert.Equal(t, []interface{}{id}, args)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs WHERE id = $1", query)
+	assert.Len(t, args, 1)
+	assert.Equal(t, id.String(), args[0])
 }
 
 func TestUpdatePVZQuery(t *testing.T) {
 	id := uuid.New()
-	city := "Санкт-Петербург"
+	city := "Moscow"
+
 	query, args, err := UpdatePVZ(id, city)
 	require.NoError(t, err)
 	assert.Equal(t, "UPDATE pvzs SET city = $1 WHERE id = $2", query)
-	assert.Equal(t, []interface{}{city, id}, args)
+	assert.Len(t, args, 2)
+	assert.Equal(t, city, args[0])
+	assert.Equal(t, id.String(), args[1])
 }
 
 func TestDeletePVZQuery(t *testing.T) {
@@ -47,23 +51,24 @@ func TestDeletePVZQuery(t *testing.T) {
 	query, args, err := DeletePVZ(id)
 	require.NoError(t, err)
 	assert.Equal(t, "DELETE FROM pvzs WHERE id = $1", query)
-	assert.Equal(t, []interface{}{id}, args)
+	assert.Len(t, args, 1)
+	assert.Equal(t, id.String(), args[0])
 }
 
 func TestListPVZsQuery(t *testing.T) {
-	offset, limit := 10, 20
-	query, args, err := ListPVZs(offset, limit)
+	query, args, err := ListPVZs(20, 10)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs ORDER BY registration_date DESC LIMIT $2 OFFSET $1", query)
-	assert.Equal(t, []interface{}{offset, limit}, args)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs ORDER BY created_at DESC LIMIT 10 OFFSET 20", query)
+	assert.Equal(t, []interface{}{}, args)
 }
 
 func TestGetPVZByCityQuery(t *testing.T) {
-	city := "Москва"
+	city := "Moscow"
 	query, args, err := GetPVZByCity(city)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs WHERE city = $1", query)
-	assert.Equal(t, []interface{}{city}, args)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs WHERE city = $1", query)
+	assert.Len(t, args, 1)
+	assert.Equal(t, city, args[0])
 }
 
 func TestCreatePVZ(t *testing.T) {
@@ -75,12 +80,12 @@ func TestCreatePVZ(t *testing.T) {
 
 	query, args, err := PostgresBuilder.
 		Insert("pvzs").
-		Columns("id", "registration_date", "city").
+		Columns("id", "created_at", "city").
 		Values(pvz.ID, pvz.RegistrationDate, pvz.City).
 		ToSql()
 
 	require.NoError(t, err)
-	assert.Equal(t, "INSERT INTO pvzs (id,registration_date,city) VALUES ($1,$2,$3)", query)
+	assert.Equal(t, "INSERT INTO pvzs (id,created_at,city) VALUES ($1,$2,$3)", query)
 	assert.Len(t, args, 3)
 	assert.Equal(t, pvz.ID, args[0])
 	assert.Equal(t, pvz.RegistrationDate, args[1])
@@ -90,13 +95,13 @@ func TestCreatePVZ(t *testing.T) {
 func TestGetPVZByID(t *testing.T) {
 	id := uuid.New()
 	query, args, err := PostgresBuilder.
-		Select("id", "registration_date", "city").
+		Select("id", "created_at", "city").
 		From("pvzs").
 		Where(squirrel.Eq{"id": id}).
 		ToSql()
 
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs WHERE id = $1", query)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs WHERE id = $1", query)
 	assert.Equal(t, []interface{}{id.String()}, args)
 }
 
@@ -127,26 +132,26 @@ func TestDeletePVZ(t *testing.T) {
 
 func TestListPVZs(t *testing.T) {
 	query, args, err := PostgresBuilder.
-		Select("id", "registration_date", "city").
+		Select("id", "created_at", "city").
 		From("pvzs").
-		OrderBy("registration_date DESC").
+		OrderBy("created_at DESC").
 		Limit(20).
 		Offset(10).
 		ToSql()
 
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs ORDER BY registration_date DESC LIMIT 20 OFFSET 10", query)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs ORDER BY created_at DESC LIMIT 20 OFFSET 10", query)
 	assert.Empty(t, args)
 }
 
 func TestGetPVZByCity(t *testing.T) {
 	query, args, err := PostgresBuilder.
-		Select("id", "registration_date", "city").
+		Select("id", "created_at", "city").
 		From("pvzs").
 		Where(squirrel.Eq{"city": "Москва"}).
 		ToSql()
 
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, registration_date, city FROM pvzs WHERE city = $1", query)
+	assert.Equal(t, "SELECT id, created_at, city FROM pvzs WHERE city = $1", query)
 	assert.Equal(t, []interface{}{"Москва"}, args)
 }

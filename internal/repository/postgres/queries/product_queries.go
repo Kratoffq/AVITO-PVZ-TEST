@@ -34,14 +34,8 @@ func GetProductsByReceptionID(receptionID uuid.UUID) (string, []interface{}, err
 
 // DeleteLastProduct удаляет последний товар по ID приемки
 func DeleteLastProduct(receptionID uuid.UUID) (string, []interface{}, error) {
-	subQuery := PostgresBuilder.Select("id").
-		From("products").
-		Where(squirrel.Eq{"reception_id": FormatUUID(receptionID)}).
-		OrderBy("date_time DESC").
-		Limit(1)
-
 	return PostgresBuilder.Delete("products").
-		Where(squirrel.Eq{"id": subQuery}).
+		Where("id = (SELECT id FROM products WHERE reception_id = ? ORDER BY date_time DESC LIMIT 1)", FormatUUID(receptionID)).
 		ToSql()
 }
 

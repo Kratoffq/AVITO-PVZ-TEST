@@ -6,12 +6,14 @@ import (
 	"net/http"
 
 	"github.com/avito/pvz/internal/config"
+	"github.com/avito/pvz/internal/domain/audit"
+	"github.com/avito/pvz/internal/domain/pvz"
 	"github.com/avito/pvz/internal/domain/transaction"
 	"github.com/avito/pvz/internal/domain/user"
 	httphandler "github.com/avito/pvz/internal/handler/http"
 	"github.com/avito/pvz/internal/middleware"
 	"github.com/avito/pvz/internal/repository/postgres"
-	"github.com/avito/pvz/internal/service/pvz"
+	servicePVZ "github.com/avito/pvz/internal/service/pvz"
 	"github.com/avito/pvz/internal/service/reception"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -21,11 +23,12 @@ import (
 type App struct {
 	server *http.Server
 	router *mux.Router
+	config *config.Config
 }
 
 // New создает новый экземпляр приложения
 func New(cfg *config.Config) (*App, error) {
-	// Инициализация репозиториев
+	// Инициализация базы данных
 	db, err := postgres.New(cfg.Database)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database connection: %w", err)
@@ -39,17 +42,13 @@ func New(cfg *config.Config) (*App, error) {
 	userRepo := postgres.NewUserRepository(sqlxDB)
 	receptionRepo := postgres.NewReceptionRepository(sqlxDB)
 	productRepo := postgres.NewProductRepository(sqlxDB)
-	txManager := transaction.NewManager(sqlxDB)
-
-	// Создаем реализацию аудита
 	auditLog := postgres.NewAuditLog(sqlxDB)
 
-	// Создаем модель пользователя по умолчанию
-	defaultUser := &user.User{
-		Role: user.RoleAdmin,
-	}
+	// Инициализация менеджера транзакций
+	txManager := transaction.NewManager(sqlxDB)
 
-	pvzService := pvz.New(pvzRepo, userRepo, txManager, auditLog, defaultUser)
+	// Создание сервисов
+	pvzService := servicePVZ.New(pvzRepo, userRepo, txManager, auditLog, nil)
 	receptionService := reception.New(receptionRepo, pvzRepo, txManager, productRepo)
 
 	// Создаем роутер
@@ -71,6 +70,7 @@ func New(cfg *config.Config) (*App, error) {
 	return &App{
 		server: server,
 		router: router,
+		config: cfg,
 	}, nil
 }
 
@@ -87,4 +87,9 @@ func (a *App) Start() error {
 // Stop останавливает приложение
 func (a *App) Stop(ctx context.Context) error {
 	return a.server.Shutdown(ctx)
+}
+
+// NewPVZService создает новый экземпляр сервиса PVZ
+func (a *App) NewPVZService(pvzRepo pvz.Repository, userRepo user.Repository, txManager transaction.Manager, auditLog audit.AuditLog) *servicePVZ.Service {
+	return servicePVZ.New(pvzRepo, userRepo, txManager, auditLog, nil)
 }

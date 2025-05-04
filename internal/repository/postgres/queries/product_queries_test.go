@@ -21,10 +21,10 @@ func TestCreateProductQuery(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "INSERT INTO products (id,date_time,type,reception_id) VALUES ($1,$2,$3,$4)", query)
 	assert.Len(t, args, 4)
-	assert.Equal(t, id, args[0])
+	assert.Equal(t, id.String(), args[0])
 	assert.Equal(t, dateTime, args[1])
 	assert.Equal(t, productType, args[2])
-	assert.Equal(t, receptionID, args[3])
+	assert.Equal(t, receptionID.String(), args[3])
 }
 
 func TestGetProductByIDQuery(t *testing.T) {
@@ -32,31 +32,31 @@ func TestGetProductByIDQuery(t *testing.T) {
 	query, args, err := GetProductByID(id)
 	require.NoError(t, err)
 	assert.Equal(t, "SELECT id, date_time, type, reception_id FROM products WHERE id = $1", query)
-	assert.Equal(t, []interface{}{id}, args)
+	assert.Len(t, args, 1)
+	assert.Equal(t, id.String(), args[0])
 }
 
 func TestGetProductsByReceptionIDQuery(t *testing.T) {
-	receptionID := uuid.New()
+	receptionID := uuid.MustParse("3dff3016-2a29-40db-8d84-3c8fe1bb4354")
 	query, args, err := GetProductsByReceptionID(receptionID)
 	require.NoError(t, err)
 	assert.Equal(t, "SELECT id, date_time, type, reception_id FROM products WHERE reception_id = $1 ORDER BY date_time DESC", query)
-	assert.Equal(t, []interface{}{receptionID}, args)
+	assert.Equal(t, []interface{}{receptionID.String()}, args)
 }
 
 func TestDeleteLastProductQuery(t *testing.T) {
 	receptionID := uuid.New()
 	query, args, err := DeleteLastProduct(receptionID)
 	require.NoError(t, err)
-	assert.Equal(t, "DELETE FROM products WHERE id IN (SELECT id FROM products WHERE reception_id = $1 ORDER BY date_time DESC LIMIT 1)", query)
-	assert.Equal(t, []interface{}{receptionID}, args)
+	assert.Equal(t, "DELETE FROM products WHERE id = (SELECT id FROM products WHERE reception_id = $1 ORDER BY date_time DESC LIMIT 1)", query)
+	assert.Equal(t, []interface{}{receptionID.String()}, args)
 }
 
 func TestListProductsQuery(t *testing.T) {
-	offset, limit := 10, 20
-	query, args, err := ListProducts(offset, limit)
+	query, args, err := ListProducts(20, 10)
 	require.NoError(t, err)
-	assert.Equal(t, "SELECT id, date_time, type, reception_id FROM products ORDER BY date_time DESC LIMIT $2 OFFSET $1", query)
-	assert.Equal(t, []interface{}{offset, limit}, args)
+	assert.Equal(t, "SELECT id, date_time, type, reception_id FROM products ORDER BY date_time DESC LIMIT 10 OFFSET 20", query)
+	assert.Equal(t, []interface{}{}, args)
 }
 
 func TestCreateProduct(t *testing.T) {

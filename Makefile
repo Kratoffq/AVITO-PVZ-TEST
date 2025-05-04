@@ -17,4 +17,32 @@ generate-grpc:
 	@protoc --go_out=. --go_opt=paths=source_relative \
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		api/proto/pvz.proto
-	@echo "gRPC code generation completed" 
+	@echo "gRPC code generation completed"
+
+.PHONY: test
+test:
+	@echo "Running all tests..."
+	@GOFLAGS="-ldflags=-linkmode=internal" go test -v -timeout 5m ./test/... -race
+	@echo "Tests completed"
+
+.PHONY: test-unit
+test-unit:
+	@echo "Running unit tests..."
+	@GOFLAGS="-ldflags=-linkmode=internal" go test -v -timeout 5m ./test/unit/... -race
+	@echo "Unit tests completed"
+
+.PHONY: test-integration
+test-integration:
+	@echo "Running integration tests..."
+	@GOFLAGS="-ldflags=-linkmode=internal" go test -v -timeout 5m ./test/integration/... -race
+	@echo "Integration tests completed"
+
+.PHONY: test-coverage-detailed
+test-coverage-detailed:
+	@echo "Running detailed coverage analysis..."
+	@go test -coverprofile=coverage.out ./test/...
+	@echo "\nCoverage by package:"
+	@go tool cover -func=coverage.out
+	@echo "\nGenerating HTML coverage report..."
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated in coverage.html" 

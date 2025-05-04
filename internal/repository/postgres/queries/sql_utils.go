@@ -24,8 +24,15 @@ func FormatUUIDs(ids []uuid.UUID) []string {
 
 // Paginate применяет пагинацию к SQL-запросу
 func Paginate(builder squirrel.SelectBuilder, offset, limit int) (string, []interface{}, error) {
-	return builder.
+	query, args, err := builder.
 		Offset(uint64(offset)).
 		Limit(uint64(limit)).
 		ToSql()
+	if err != nil {
+		return "", nil, err
+	}
+	if args == nil {
+		args = make([]interface{}, 0)
+	}
+	return query, args, nil
 }

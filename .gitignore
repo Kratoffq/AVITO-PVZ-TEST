@@ -1,0 +1,89 @@
+# IDE и редакторы
+.idea/
+.vscode/
+*.swp
+*.swo
+.cursor/
+*.sublime-*
+
+# Временные файлы
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Файлы сборки и бинарные файлы
+/bin/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Файлы покрытия тестами
+coverage.out
+coverage.html
+unit_coverage.out
+unit_coverage.html
+*.cover
+coverage/
+
+# Логи
+*.log
+logs/
+log/
+
+# Конфигурационные файлы с секретами
+.env
+.env.*
+!.env.example
+configs/*.local.yaml
+configs/*.dev.yaml
+
+# Зависимости
+/vendor/
+/node_modules/
+
+# Кэш
+.cache/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Файлы базы данных
+*.db
+*.sqlite
+*.sqlite3
+
+# Файлы Docker
+.docker/
+docker-compose.override.yml
+
+# Файлы генерации кода
+*.gen.go
+*.pb.go
+*.pb.gw.go
+api/openapi/types.gen.go
+internal/handler/http/openapi.gen.go
+
+# Временные файлы тестов
+test/tmp/
+test/data/
+
+# Файлы для локальной разработки
+*.local
+*.dev
+*.test
+*.prod
+
+# Системные файлы
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 

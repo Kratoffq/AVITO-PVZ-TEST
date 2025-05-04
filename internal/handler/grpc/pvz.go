@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/avito/pvz/api/proto"
-	pvzservice "github.com/avito/pvz/internal/service/pvz"
+	servicePVZ "github.com/avito/pvz/internal/service/pvz"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -13,11 +13,11 @@ import (
 // PVZHandler реализует gRPC-интерфейс для работы с ПВЗ
 type PVZHandler struct {
 	proto.UnimplementedPVZServiceServer
-	pvzService *pvzservice.Service
+	pvzService *servicePVZ.Service
 }
 
 // NewPVZHandler создает новый экземпляр PVZHandler
-func NewPVZHandler(pvzService *pvzservice.Service) *PVZHandler {
+func NewPVZHandler(pvzService *servicePVZ.Service) *PVZHandler {
 	return &PVZHandler{
 		pvzService: pvzService,
 	}
